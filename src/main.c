@@ -47,7 +47,7 @@ void uartTask() {
 
 	HAL_UART_Init(&s_UARTHandle);
 
-	uart_initialize();
+
 	uint8_t i = 0;
 
 	char buf[] = " - Hello World\n\r";
@@ -65,7 +65,7 @@ void uartTask() {
 
 int main(void) {
 	SystemCoreClockUpdate();
-
+	uart_initialize();
 //	HAL_Init();
 
 	led_init();

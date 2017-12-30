@@ -40,7 +40,7 @@ void uart_initialize(){
 
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 	NVIC_EnableIRQ(USART2_IRQn);
-	NVIC_SetPriority(USART2_IRQn, 0xff);
+	NVIC_SetPriority(USART2_IRQn, 6);
 
 }
 
@@ -50,7 +50,7 @@ void uart_send(char *s){
 		s++;
 	}
 
-	NVIC_SetPendingIRQ(USART2_IRQn);
+	USART2->CR1 |= USART_CR1_TXEIE;
 	// TODO unlock sender task
 }
 
@@ -78,10 +78,14 @@ void USART2_IRQHandler(){
 	GPIOA->ODR ^= GPIO_PIN_5;
 
 	if (USART2->SR & USART_SR_TXE){
+		USART2->SR &= ~USART_SR_TXE;
 
 		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &c, &xHigherPriorityHasWoken);
 		if (status == pdPASS){
 			USART2->DR = c;
+		}else{
+			USART2->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
 		}
 	}
+	NVIC_ClearPendingIRQ(USART2_IRQn);
 }
