@@ -55,16 +55,18 @@ void uart_send(char *s){
 }
 
 void cli_task(){
-	// TODO initialize uart2
+	//initializing uart2
+	uart_initialize();
 
-	// TODO create sender task
+	//create sender task
+	//not needed
 
 	// TODO create receiver task
 
 
 	for(;;){
 
-
+		taskYIELD();
 
 	}
 
@@ -73,14 +75,14 @@ void cli_task(){
 
 void USART2_IRQHandler(){
 	char c;
-	portBASE_TYPE xHigherPriorityHasWoken = pdFALSE;
+	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
-	GPIOA->ODR ^= GPIO_PIN_5;
+//	GPIOA->ODR ^= GPIO_PIN_5;
 
 	if (USART2->SR & USART_SR_TXE){
 		USART2->SR &= ~USART_SR_TXE;
 
-		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &c, &xHigherPriorityHasWoken);
+		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &c, &xHigherPriorityTaskWoken);
 		if (status == pdPASS){
 			USART2->DR = c;
 		}else{

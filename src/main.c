@@ -25,7 +25,7 @@ void led_init(){
 	GPIOA->CRL &= ~(GPIO_CRL_CNF5_1 | GPIO_CRL_CNF5_0 | GPIO_CRL_MODE5_0);
 }
 
-void Task() {
+void LED_Task() {
 
 	for (;;) {
 		GPIOA->ODR ^= GPIO_PIN_5;
@@ -36,14 +36,13 @@ void Task() {
 void uartTask() {
 	uint8_t i = 0;
 
-	char buf[] = " - Hello World\n\r";
 	char tab[10];
 
 	for (;;) {
 		itoa((i++)%10, tab, 10);
 		uart_send(tab);
-		uart_send(buf);
-		uart_send("\n\r");
+		uart_send(" - Hello World\n\r");
+
 		vTaskDelay(1000 / portTICK_RATE_MS);
 	}
 }
@@ -51,11 +50,13 @@ void uartTask() {
 int main(void) {
 	SystemCoreClockUpdate();
 
-	uart_initialize();
-
 	led_init();
 
+	uart_initialize();
+
+	//xTaskCreate(cli_task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
 
 	vTaskStartScheduler();
 
