@@ -14,14 +14,17 @@
 #include <string.h>
 
 
+#include "wifi.h"
+
+
 xQueueHandle uartTransmitQueue;
 xQueueHandle uartReceiveQueue;
 
 
 void uart_initialize(){
 
-	uartTransmitQueue = xQueueCreate(20, sizeof(char));
-	uartReceiveQueue = xQueueCreate(5, sizeof(char));
+	uartTransmitQueue = xQueueCreate(200, sizeof(char));
+	uartReceiveQueue = xQueueCreate(20, sizeof(char));
 
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
@@ -62,13 +65,16 @@ void parse(char *buf){
 	// TODO usunac
 		if (strcmp("tog", buf) == 0){
 			GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
+		} else {
+			wifi_send(buf);
+			wifi_send("\r\n");
 		}
 	// 	^^^
 
 }
 
 void uart_receiver_task (){
-	static char uartReceiverBuffer[20];
+	static char uartReceiverBuffer[50];
 	static uint8_t idx = 0;
 	char data;
 
@@ -88,7 +94,7 @@ void uart_receiver_task (){
 
 		} else {
 			uartReceiverBuffer[idx] = data;
-			if (idx < 20) idx++;
+			if (idx < 50) idx++;
 		}
 
 //		echo

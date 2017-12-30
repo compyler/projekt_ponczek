@@ -17,6 +17,7 @@
 #include <stdlib.h>
 
 #include "../drivers/cli.h"
+#include "../drivers/wifi.h"
 
 
 void led_init(){
@@ -53,11 +54,12 @@ int main(void) {
 	led_init();
 
 	uart_initialize();
+	wifi_initialize();
 
 //	xTaskCreate(LED_Task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 //	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-	xTaskCreate(uart_receiver_task, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
-
+	xTaskCreate(uart_receiver_task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate(wifi_receiver_task, "WIFI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
 
 	vTaskStartScheduler();
