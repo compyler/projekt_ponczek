@@ -49,12 +49,12 @@ void uartTask() {
 
 int main(void) {
 	SystemCoreClockUpdate();
-
+	NVIC_SetPriorityGrouping( 0 );
 	led_init();
 
 	uart_initialize();
 
-	xTaskCreate(LED_Task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+//	xTaskCreate(LED_Task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
 

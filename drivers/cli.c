@@ -14,11 +14,12 @@
 
 
 xQueueHandle uartTransmitQueue;
+xQueueHandle uartReceiveQueue;
 
 void uart_initialize(){
 
 	uartTransmitQueue = xQueueCreate(20, sizeof(char));
-
+	uartReceiveQueue = xQueueCreate(20, sizeof(char));
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
 
@@ -27,8 +28,8 @@ void uart_initialize(){
 	GPIOA->CRL &= ~(GPIO_CRL_CNF2_0 | GPIO_CRL_MODE2_0); // output push-pull , 2MHz
 
 	//gpio A3 - rx
-	GPIOA->CRL |= GPIO_CRL_CNF3_1; // input pullup
-	GPIOA->CRL &= ~( GPIO_CRL_CNF3_1 |  GPIO_CRL_CNF3_0 | GPIO_CRL_CNF3_0); // input pullup
+	GPIOA->CRL |= GPIO_CRL_CNF3_0; // input pullup
+	GPIOA->CRL &= ~( GPIO_CRL_CNF3_1 |  GPIO_CRL_MODE3_1 | GPIO_CRL_MODE3_0); // input pullup
 
 
 	/* UART CLI 9600, 8, N, 1 */
@@ -36,7 +37,7 @@ void uart_initialize(){
 	USART2->CR1 |= USART_CR1_UE; 			// usart enable
 	USART2->BRR |= USART_BRR(SystemCoreClock/2, 9600);
 	USART2->CR1 |= USART_CR1_TE | USART_CR1_RE;	// sending idle frame
-	USART2->CR1 |= USART_CR1_TXEIE;	// uart transmit interrupt enable
+	USART2->CR1 |= USART_CR1_TXEIE | USART_CR1_RXNEIE;	// uart transmit interrupt enable
 
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 	NVIC_EnableIRQ(USART2_IRQn);
@@ -46,12 +47,17 @@ void uart_initialize(){
 
 void uart_send(char *s){
 	while(*s){
-		xQueueSendToBack(uartTransmitQueue, s, 100);
+		xQueueSendToBack(uartTransmitQueue, s, 100 / portTICK_RATE_MS);
 		s++;
 	}
+	USART2->CR1 |= USART_CR1_TXEIE; // enable transmition interrupt
 
-	USART2->CR1 |= USART_CR1_TXEIE;
-	// TODO unlock sender task
+}
+
+char * uart_receive(){
+
+
+	return 0;
 }
 
 void cli_task(){
@@ -77,7 +83,6 @@ void USART2_IRQHandler(){
 	char c;
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
-//	GPIOA->ODR ^= GPIO_PIN_5;
 
 	if (USART2->SR & USART_SR_TXE){
 		USART2->SR &= ~USART_SR_TXE;
@@ -85,9 +90,28 @@ void USART2_IRQHandler(){
 		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &c, &xHigherPriorityTaskWoken);
 		if (status == pdPASS){
 			USART2->DR = c;
-		}else{
+		} else {
 			USART2->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
 		}
 	}
+	if (USART2->SR & USART_SR_RXNE){
+
+		//odczytaj dane
+		char data = USART2->DR;
+		USART2->DR = data;
+		// wpakuj do kolejki
+		uint8_t status = xQueueSendToBackFromISR(uartReceiveQueue, &data, &xHigherPriorityTaskWoken);
+
+		//obudz receiver task
+	}
+
+	GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 }
+
+
+
+
+
+
+
