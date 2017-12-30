@@ -11,15 +11,23 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "semphr.h"
+
+#include <string.h>
 
 
 xQueueHandle uartTransmitQueue;
 xQueueHandle uartReceiveQueue;
 
+xSemaphoreHandle uartReceiverSemaphore;
+
 void uart_initialize(){
 
 	uartTransmitQueue = xQueueCreate(20, sizeof(char));
 	uartReceiveQueue = xQueueCreate(20, sizeof(char));
+
+	vSemaphoreCreateBinary(uartReceiverSemaphore);
+
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
 
@@ -54,11 +62,46 @@ void uart_send(char *s){
 
 }
 
-char * uart_receive(){
+void uart_receiver_task (){
+	static char uartReceiverBuffer[20];
+	static uint8_t idx = 0;
+	char data;
 
+	for(;;){
+		//odczytaj dane
 
-	return 0;
+		xQueueReceive(uartReceiveQueue, &data, portMAX_DELAY);
+
+		if (data == '\r'){
+			uartReceiverBuffer[idx] = 0;
+			idx = 0;
+
+			// tymczasowo ...
+			// TODO usunac
+				if (strcmp("tog", uartReceiverBuffer) == 0){
+					GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
+				}
+			// 	^^^
+
+		} else if (data == 127){ 	// backspace button in putty
+			if (idx) idx--;
+
+		} else {
+			uartReceiverBuffer[idx] = data;
+			if (idx < 20) idx++;
+		}
+
+//		echo
+		if (data == '\r'){
+			uart_send("\n\r");
+		} else {
+			char tab[2] = {};
+			tab[0] = data;
+			uart_send(tab);
+		}
+	}
 }
+
 
 void cli_task(){
 	//initializing uart2
@@ -79,9 +122,9 @@ void cli_task(){
 }
 
 
+
 void USART2_IRQHandler(){
-	static char uartReceiverBuffer[20];
-	char c;
+	char data;
 
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
@@ -89,59 +132,21 @@ void USART2_IRQHandler(){
 	if (USART2->SR & USART_SR_TXE){
 		USART2->SR &= ~USART_SR_TXE;
 
-		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &c, &xHigherPriorityTaskWoken);
+		uint8_t status = xQueueReceiveFromISR(uartTransmitQueue, &data, &xHigherPriorityTaskWoken);
 		if (status == pdPASS){
-			USART2->DR = c;
+			USART2->DR = data;
 		} else {
 			USART2->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
 		}
 	}
 	if (USART2->SR & USART_SR_RXNE){
-		static uint8_t idx = 0;
 
-		//odczytaj dane
-		char data = USART2->DR;
+		data = USART2->DR;
+		xQueueSendToBackFromISR(uartReceiveQueue, &data, &xHigherPriorityTaskWoken);
 
-		if (data == '\r'){
-			uartReceiverBuffer[idx] = 0;
-			idx = 0;
-
-			char *buffer = uartReceiverBuffer;
-			while (*buffer){		// when <enter> copy buffer to queue
-				xQueueSendToBackFromISR(uartReceiveQueue, buffer, &xHigherPriorityTaskWoken);
-				buffer++;
-			}
-			// tymczasowo ...
-				if (strcmp("tog", uartReceiverBuffer) == 0){
-					GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
-				}
-
-
-		} else if (data == 127){ 	// backspace button in putty
-			if (idx) idx--;
-
-		} else {
-			uartReceiverBuffer[idx] = data;
-			if (idx < 20) idx++;
-		}
-
-//		echo
-		if (data == '\r'){
-			const char d[] = "\n\r";
-			xQueueSendToBackFromISR(uartTransmitQueue, &d[0], &xHigherPriorityTaskWoken);
-			xQueueSendToBackFromISR(uartTransmitQueue, &d[1], &xHigherPriorityTaskWoken);
-		} else {
-			xQueueSendToBackFromISR(uartTransmitQueue, &data, &xHigherPriorityTaskWoken);
-		}
-		USART2->CR1 |= USART_CR1_TXEIE; // enable transmition interrupt
-
-
-
-		// TODO obudz receiver task
-
+		xSemaphoreGiveFromISR(uartReceiverSemaphore, &xHigherPriorityTaskWoken);
 
 	}
-
 
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 }

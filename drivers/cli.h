@@ -12,6 +12,7 @@ void cli_task();
 void uart_initialize();
 
 void uart_send(char *s);
+void uart_receiver_task ();
 
 
 #endif /* CLI_H_ */

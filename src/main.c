@@ -56,6 +56,8 @@ int main(void) {
 
 //	xTaskCreate(LED_Task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 //	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate(uart_receiver_task, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
 
 
 	vTaskStartScheduler();
