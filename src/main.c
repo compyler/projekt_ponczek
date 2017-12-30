@@ -20,7 +20,7 @@
 
 
 void led_init(){
-	RCC->APB1ENR |= RCC_APB2ENR_IOPAEN;
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
 	GPIOA->CRL |= GPIO_CRL_MODE5_1;
 	GPIOA->CRL &= ~(GPIO_CRL_CNF5_1 | GPIO_CRL_CNF5_0 | GPIO_CRL_MODE5_0);
 }
@@ -54,7 +54,7 @@ int main(void) {
 
 	uart_initialize();
 
-	//xTaskCreate(cli_task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate(LED_Task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
 
