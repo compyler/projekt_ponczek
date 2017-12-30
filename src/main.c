@@ -56,6 +56,7 @@ void uartTask() {
 	for (;;) {
 		itoa((i++)%10, tab, 10);
 		uart_send(tab);
+		uart_send(buf);
 		uart_send("\n\r");
 //		HAL_UART_Transmit(&s_UARTHandle, (uint8_t *) tab, 1, HAL_MAX_DELAY);
 //		HAL_UART_Transmit(&s_UARTHandle, (uint8_t *) buf, sizeof(buf), HAL_MAX_DELAY);

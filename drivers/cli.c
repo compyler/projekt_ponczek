@@ -17,7 +17,7 @@ xQueueHandle uartTransmitQueue;
 
 void uart_initialize(){
 
-	uartTransmitQueue = xQueueCreate(10,sizeof(char));
+	uartTransmitQueue = xQueueCreate(20, sizeof(char));
 
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
@@ -46,7 +46,7 @@ void uart_initialize(){
 
 void uart_send(char *s){
 	while(*s){
-		xQueueSendToBack(uartTransmitQueue, s, 1);
+		xQueueSendToBack(uartTransmitQueue, s, 100);
 		s++;
 	}
 
