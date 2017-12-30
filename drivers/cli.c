@@ -80,7 +80,9 @@ void cli_task(){
 
 
 void USART2_IRQHandler(){
+	static char uartReceiverBuffer[20];
 	char c;
+
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
 
@@ -95,17 +97,52 @@ void USART2_IRQHandler(){
 		}
 	}
 	if (USART2->SR & USART_SR_RXNE){
+		static uint8_t idx = 0;
 
 		//odczytaj dane
 		char data = USART2->DR;
-		USART2->DR = data;
-		// wpakuj do kolejki
-		uint8_t status = xQueueSendToBackFromISR(uartReceiveQueue, &data, &xHigherPriorityTaskWoken);
 
-		//obudz receiver task
+		if (data == '\r'){
+			uartReceiverBuffer[idx] = 0;
+			idx = 0;
+
+			char *buffer = uartReceiverBuffer;
+			while (*buffer){		// when <enter> copy buffer to queue
+				xQueueSendToBackFromISR(uartReceiveQueue, buffer, &xHigherPriorityTaskWoken);
+				buffer++;
+			}
+			// tymczasowo ...
+				if (strcmp("tog", uartReceiverBuffer) == 0){
+					GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
+				}
+
+
+		} else if (data == 127){ 	// backspace button in putty
+			if (idx) idx--;
+
+		} else {
+			uartReceiverBuffer[idx] = data;
+			if (idx < 20) idx++;
+		}
+
+//		echo
+		if (data == '\r'){
+			const char d[] = "\n\r";
+			xQueueSendToBackFromISR(uartTransmitQueue, &d[0], &xHigherPriorityTaskWoken);
+			xQueueSendToBackFromISR(uartTransmitQueue, &d[1], &xHigherPriorityTaskWoken);
+		} else {
+			xQueueSendToBackFromISR(uartTransmitQueue, &data, &xHigherPriorityTaskWoken);
+		}
+		USART2->CR1 |= USART_CR1_TXEIE; // enable transmition interrupt
+
+
+
+		// TODO obudz receiver task
+
+
 	}
 
-	GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
+
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 }
 
