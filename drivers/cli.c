@@ -57,6 +57,16 @@ void uart_send(char *s){
 
 }
 
+void parse(char *buf){
+	// tymczasowo ...
+	// TODO usunac
+		if (strcmp("tog", buf) == 0){
+			GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
+		}
+	// 	^^^
+
+}
+
 void uart_receiver_task (){
 	static char uartReceiverBuffer[20];
 	static uint8_t idx = 0;
@@ -71,12 +81,7 @@ void uart_receiver_task (){
 			uartReceiverBuffer[idx] = 0;
 			idx = 0;
 
-			// tymczasowo ...
-			// TODO usunac
-				if (strcmp("tog", uartReceiverBuffer) == 0){
-					GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
-				}
-			// 	^^^
+			parse(uartReceiverBuffer);
 
 		} else if (data == 127){ 	// backspace button in putty
 			if (idx) idx--;
