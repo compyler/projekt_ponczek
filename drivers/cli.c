@@ -11,22 +11,17 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#include "semphr.h"
-
 #include <string.h>
 
 
 xQueueHandle uartTransmitQueue;
 xQueueHandle uartReceiveQueue;
 
-xSemaphoreHandle uartReceiverSemaphore;
 
 void uart_initialize(){
 
 	uartTransmitQueue = xQueueCreate(20, sizeof(char));
-	uartReceiveQueue = xQueueCreate(20, sizeof(char));
-
-	vSemaphoreCreateBinary(uartReceiverSemaphore);
+	uartReceiveQueue = xQueueCreate(5, sizeof(char));
 
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
@@ -70,7 +65,7 @@ void uart_receiver_task (){
 	for(;;){
 		//odczytaj dane
 
-		xQueueReceive(uartReceiveQueue, &data, portMAX_DELAY);
+		xQueueReceive(uartReceiveQueue, &data, portMAX_DELAY);	// czekaj na dane
 
 		if (data == '\r'){
 			uartReceiverBuffer[idx] = 0;
@@ -140,11 +135,8 @@ void USART2_IRQHandler(){
 		}
 	}
 	if (USART2->SR & USART_SR_RXNE){
-
 		data = USART2->DR;
 		xQueueSendToBackFromISR(uartReceiveQueue, &data, &xHigherPriorityTaskWoken);
-
-		xSemaphoreGiveFromISR(uartReceiverSemaphore, &xHigherPriorityTaskWoken);
 
 	}
 
