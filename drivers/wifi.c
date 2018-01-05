@@ -21,10 +21,12 @@ xQueueHandle wifiTransmitQueue;
 xQueueHandle wifiReceiveQueue;
 
 
+
+
 void wifi_initialize(){
 
 	wifiTransmitQueue = xQueueCreate(50, sizeof(char));
-	wifiReceiveQueue = xQueueCreate(500, sizeof(char));
+	wifiReceiveQueue = xQueueCreate(200, sizeof(char));
 
 	/* GPIO for WIFI configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN; 	//portC clock enable
@@ -57,61 +59,57 @@ void wifi_initialize(){
 
 void wifi_send(char *s){
 	while(*s){
-		xQueueSendToBack(wifiTransmitQueue, s, 100 / portTICK_RATE_MS);
+		xQueueSendToBack(wifiTransmitQueue, s, 0);
 		s++;
 	}
 	USART3->CR1 |= USART_CR1_TXEIE; // enable transmition interrupt
 
 }
 
-void dparse(char *buf){
-	// tymczasowo ...
-	// TODO usunac
-		if (strcmp("tog", buf) == 0){
-			GPIOA->ODR ^= GPIO_PIN_5; // for debug puroposes
-		}
-	// 	^^^
+void wifiparse(char *buf){
+
+	while(*buf != ':') buf++;
+	buf += 1;
+
+
+	uart_send(buf);
+	uart_send("\r\n");
 
 }
 
 void wifi_receiver_task (){
-//	static char wifiReceiverBuffer[20];
+
+//	static char wifiReceiverBuffer[50];
 //	static uint8_t idx = 0;
 	char data;
+
+	static char buffer[50];
+	static uint8_t bidx = 0;
 
 	for(;;){
 		//odczytaj dane
 
 		xQueueReceive(wifiReceiveQueue, &data, portMAX_DELAY);	// czekaj na dane
 
-		char tab[2] = {0,0};
-		tab[0] = data;
-		uart_send(tab);
+
+		if (data == 'o'){
+			buffer[bidx] = 0;
+//			if (strcmp(buffer, "\r\n+IPD,0,20:dupajjsajsaqwertyui") == 0){
+//				uart_send("OK\r\n");
+//			}else {
+//				uart_send("NOT OK\r\n");
+//			}
+			uart_send(buffer);
+			bidx = 0;
+		}else {
+			buffer[bidx] = data;
+			bidx++;
+		}
 
 
-
-//		if (data == '\r'){
-//			uartReceiverBuffer[idx] = 0;
-//			idx = 0;
-//
-//			dparse(uartReceiverBuffer);
-//
-//		} else if (data == 127){ 	// backspace button in putty
-//			if (idx) idx--;
-//
-//		} else {
-//			uartReceiverBuffer[idx] = data;
-//			if (idx < 20) idx++;
-//		}
-//
-////		echo
-//		if (data == '\r'){
-//			wifi_send("\n\r");
-//		} else {
-//			char tab[2] = {};
-//			tab[0] = data;
-//			wifi_send(tab);
-//		}
+//		char tab[2] = {0,0};
+//		tab[0] = data;
+//		uart_send(tab);
 	}
 }
 
@@ -127,12 +125,15 @@ void USART3_IRQHandler(){
 	if (USART3->SR & USART_SR_TXE){
 		USART3->SR &= ~USART_SR_TXE;
 
-		uint8_t status = xQueueReceiveFromISR(wifiTransmitQueue, &data, &xHigherPriorityTaskWoken);
-		if (status == pdPASS){
-			USART3->DR = data;
-		} else {
-			USART3->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
-		}
+//		if (xQueueIsQueueEmptyFromISR(wifiTransmitQueue) == pdFALSE){
+			uint8_t status = xQueueReceiveFromISR(wifiTransmitQueue, &data, &xHigherPriorityTaskWoken);
+			if (status == pdPASS){
+				USART3->DR = data;
+			} else {
+				USART3->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
+			}
+//		}
+
 	}
 	if (USART3->SR & USART_SR_RXNE){
 		data = USART3->DR;
@@ -140,7 +141,7 @@ void USART3_IRQHandler(){
 
 	}
 
-	NVIC_ClearPendingIRQ(USART3_IRQn);
+	//NVIC_ClearPendingIRQ(USART3_IRQn);
 }
 
 

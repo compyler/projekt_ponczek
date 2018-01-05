@@ -23,8 +23,8 @@ xQueueHandle uartReceiveQueue;
 
 void uart_initialize(){
 
-	uartTransmitQueue = xQueueCreate(200, sizeof(char));
-	uartReceiveQueue = xQueueCreate(20, sizeof(char));
+	uartTransmitQueue = xQueueCreate(100, sizeof(char));
+	uartReceiveQueue = xQueueCreate(200, sizeof(char));
 
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
@@ -53,7 +53,7 @@ void uart_initialize(){
 
 void uart_send(char *s){
 	while(*s){
-		xQueueSendToBack(uartTransmitQueue, s, 100 / portTICK_RATE_MS);
+		xQueueSendToBack(uartTransmitQueue, s, 0);
 		s++;
 	}
 	USART2->CR1 |= USART_CR1_TXEIE; // enable transmition interrupt
@@ -151,7 +151,7 @@ void USART2_IRQHandler(){
 
 	}
 
-	NVIC_ClearPendingIRQ(USART2_IRQn);
+	//NVIC_ClearPendingIRQ(USART2_IRQn);
 }
 
 
