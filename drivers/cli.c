@@ -47,7 +47,7 @@ void uart_initialize(){
 
 	NVIC_ClearPendingIRQ(USART2_IRQn);
 	NVIC_EnableIRQ(USART2_IRQn);
-	NVIC_SetPriority(USART2_IRQn, 6);
+	NVIC_SetPriority(USART2_IRQn, 10);
 
 }
 
@@ -86,25 +86,35 @@ void uart_receiver_task (){
 		if (data == '\r'){
 			uartReceiverBuffer[idx] = 0;
 			idx = 0;
-
+			uart_send("\n\r");	////////////
 			parse(uartReceiverBuffer);
 
-		} else if (data == 127){ 	// backspace button in putty
-			if (idx) idx--;
-
 		} else {
-			uartReceiverBuffer[idx] = data;
-			if (idx < 50) idx++;
-		}
 
-//		echo
-		if (data == '\r'){
-			uart_send("\n\r");
-		} else {
+			if (data == 127){ 	// backspace button in putty
+				if (idx) idx--;
+
+			} else {
+				uartReceiverBuffer[idx] = data;
+				if (idx < 50) idx++;
+			}
+
 			char tab[2] = {};
 			tab[0] = data;
 			uart_send(tab);
 		}
+
+
+//		echo
+//		if (data == '\r'){
+//			uart_send("\n\r");
+////			wifi_send("\n\r");
+//		} else {
+//			char tab[2] = {};
+//			tab[0] = data;
+////			wifi_send(tab);
+//			uart_send(tab);
+//		}
 	}
 }
 
@@ -152,6 +162,7 @@ void USART2_IRQHandler(){
 	}
 
 	//NVIC_ClearPendingIRQ(USART2_IRQn);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 

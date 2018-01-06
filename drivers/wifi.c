@@ -21,8 +21,6 @@ xQueueHandle wifiTransmitQueue;
 xQueueHandle wifiReceiveQueue;
 
 
-
-
 void wifi_initialize(){
 
 	wifiTransmitQueue = xQueueCreate(50, sizeof(char));
@@ -53,7 +51,7 @@ void wifi_initialize(){
 
 	NVIC_ClearPendingIRQ(USART3_IRQn);
 	NVIC_EnableIRQ(USART3_IRQn);
-	NVIC_SetPriority(USART3_IRQn, 6);
+	NVIC_SetPriority(USART3_IRQn, 10);
 
 }
 
@@ -92,7 +90,8 @@ void wifi_receiver_task (){
 		xQueueReceive(wifiReceiveQueue, &data, portMAX_DELAY);	// czekaj na dane
 
 
-		if (data == 'o'){
+		if (data == '\n'){
+			buffer[bidx++] = data;
 			buffer[bidx] = 0;
 //			if (strcmp(buffer, "\r\n+IPD,0,20:dupajjsajsaqwertyui") == 0){
 //				uart_send("OK\r\n");
@@ -142,6 +141,7 @@ void USART3_IRQHandler(){
 	}
 
 	//NVIC_ClearPendingIRQ(USART3_IRQn);
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 
