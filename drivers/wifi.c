@@ -135,6 +135,7 @@ void USART3_IRQHandler(){
 
 	}
 	if (USART3->SR & USART_SR_RXNE){
+	if ( (USART3->SR & USART_SR_RXNE) || (USART3->SR & USART_SR_ORE) ){
 		data = USART3->DR;
 		xQueueSendToBackFromISR(wifiReceiveQueue, &data, &xHigherPriorityTaskWoken);
 
