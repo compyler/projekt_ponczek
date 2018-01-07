@@ -30,7 +30,7 @@ void LED_Task() {
 
 	for (;;) {
 		GPIOA->ODR ^= GPIO_PIN_5;
-		vTaskDelay(500 / portTICK_RATE_MS);
+		vTaskDelay(100 / portTICK_RATE_MS);
 	}
 }
 

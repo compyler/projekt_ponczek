@@ -23,8 +23,8 @@ xQueueHandle uartReceiveQueue;
 
 void uart_initialize(){
 
-	uartTransmitQueue = xQueueCreate(100, sizeof(char));
-	uartReceiveQueue = xQueueCreate(200, sizeof(char));
+	uartTransmitQueue = xQueueCreate(200, sizeof(char));
+	uartReceiveQueue = xQueueCreate(10, sizeof(char));
 
 	/* GPIO for UART configuration  */
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; 	//portA clock enable
@@ -79,8 +79,8 @@ void uart_receiver_task (){
 	char data;
 
 	for(;;){
-		//odczytaj dane
 
+		//odczytaj dane
 		xQueueReceive(uartReceiveQueue, &data, portMAX_DELAY);	// czekaj na dane
 
 		if (data == '\r'){
@@ -90,7 +90,6 @@ void uart_receiver_task (){
 			parse(uartReceiverBuffer);
 
 		} else {
-
 			if (data == 127){ 	// backspace button in putty
 				if (idx) idx--;
 
@@ -103,18 +102,6 @@ void uart_receiver_task (){
 			tab[0] = data;
 			uart_send(tab);
 		}
-
-
-//		echo
-//		if (data == '\r'){
-//			uart_send("\n\r");
-////			wifi_send("\n\r");
-//		} else {
-//			char tab[2] = {};
-//			tab[0] = data;
-////			wifi_send(tab);
-//			uart_send(tab);
-//		}
 	}
 }
 
@@ -161,7 +148,6 @@ void USART2_IRQHandler(){
 
 	}
 
-	//NVIC_ClearPendingIRQ(USART2_IRQn);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 

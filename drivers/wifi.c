@@ -37,7 +37,7 @@ void wifi_initialize(){
 	GPIOC->CRH |= GPIO_CRH_CNF11_0; // input pullup
 	GPIOC->CRH &= ~( GPIO_CRH_CNF11_1 |  GPIO_CRH_MODE11_1 | GPIO_CRH_MODE11_0); // input pullup
 
-	//TODO uart3 remap
+	//uart3 remap
 	RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;
 	AFIO->MAPR |= AFIO_MAPR_USART3_REMAP_0;
 
@@ -77,38 +77,25 @@ void wifiparse(char *buf){
 
 void wifi_receiver_task (){
 
-//	static char wifiReceiverBuffer[50];
-//	static uint8_t idx = 0;
 	char data;
 
-	static char buffer[50];
+	static char buffer[100];
 	static uint8_t bidx = 0;
 
 	for(;;){
 		//odczytaj dane
-
 		xQueueReceive(wifiReceiveQueue, &data, portMAX_DELAY);	// czekaj na dane
-
 
 		if (data == '\n'){
 			buffer[bidx++] = data;
 			buffer[bidx] = 0;
-//			if (strcmp(buffer, "\r\n+IPD,0,20:dupajjsajsaqwertyui") == 0){
-//				uart_send("OK\r\n");
-//			}else {
-//				uart_send("NOT OK\r\n");
-//			}
-			uart_send(buffer);
 			bidx = 0;
+
+			uart_send(buffer);
 		}else {
 			buffer[bidx] = data;
 			bidx++;
 		}
-
-
-//		char tab[2] = {0,0};
-//		tab[0] = data;
-//		uart_send(tab);
 	}
 }
 
@@ -124,30 +111,20 @@ void USART3_IRQHandler(){
 	if (USART3->SR & USART_SR_TXE){
 		USART3->SR &= ~USART_SR_TXE;
 
-//		if (xQueueIsQueueEmptyFromISR(wifiTransmitQueue) == pdFALSE){
-			uint8_t status = xQueueReceiveFromISR(wifiTransmitQueue, &data, &xHigherPriorityTaskWoken);
-			if (status == pdPASS){
-				USART3->DR = data;
-			} else {
-				USART3->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
-			}
-//		}
+		uint8_t status = xQueueReceiveFromISR(wifiTransmitQueue, &data, &xHigherPriorityTaskWoken);
+		if (status == pdPASS){
+			USART3->DR = data;
+		} else {
+			USART3->CR1 &= ~USART_CR1_TXEIE; // disable interrupt if nothing to send
+		}
 
 	}
-	if (USART3->SR & USART_SR_RXNE){
 	if ( (USART3->SR & USART_SR_RXNE) || (USART3->SR & USART_SR_ORE) ){
 		data = USART3->DR;
 		xQueueSendToBackFromISR(wifiReceiveQueue, &data, &xHigherPriorityTaskWoken);
 
 	}
 
-	//NVIC_ClearPendingIRQ(USART3_IRQn);
 	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
-
-
-
-
-
-
 
