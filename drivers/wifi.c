@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "cli.h"
+#include "ssd1306.h"
 
 
 xQueueHandle wifiTransmitQueue;
@@ -90,6 +91,10 @@ void wifi_receiver_task (){
 			buffer[bidx++] = data;
 			buffer[bidx] = 0;
 			bidx = 0;
+
+//			ssd1306_clear_screen();
+
+//			ssd1306_draw_string(buf ,0,0);
 
 			uart_send(buffer);
 		}else {

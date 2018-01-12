@@ -18,6 +18,7 @@
 
 #include "../drivers/cli.h"
 #include "../drivers/wifi.h"
+#include "../drivers/ssd1306.h"
 
 
 void led_init(){
@@ -53,14 +54,18 @@ int main(void) {
 //	NVIC_SetPriorityGrouping( 0 );
 	led_init();
 
-	GPIOA->ODR ^= GPIO_PIN_5;
+	// GPIOA->ODR ^= GPIO_PIN_5;
 	uart_initialize();
 	wifi_initialize();
+	ssd1306_initialize();
+
 
 	xTaskCreate(LED_Task, "LED", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 //	xTaskCreate(uartTask, "UART", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 	xTaskCreate(uart_receiver_task, "CLI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 	xTaskCreate(wifi_receiver_task, "WIFI", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate(ssd1306_task, "OLED", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
 
 
 	vTaskStartScheduler();
